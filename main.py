@@ -47,8 +47,23 @@ def error_catcher(func):
         except Exception as e:
             print(e)
             error_logger.exception(e)
+            notify_admins(confg.ADMINS_CHAT_IDS, args, kwargs, func)
 
     return wrapper
+
+
+def notify_admins(admins_chat_ids_list, args, kwargs, func=None):
+    text = f''' 
+    Увага ! Відбулась помилка, продивіться ерорні логи ! 
+    посилання на папку з логами: [logs]({confg.LOG_FOLDER_LINK})
+    Інфо : 
+        function : {func.__name__ if func else "No info"} 
+        args : {args}
+        kwargs: {kwargs}    
+            '''
+
+    for chat_id in admins_chat_ids_list:
+        bot.send_message(chat_id, text=text)
 
 
 @bot.message_handler(commands=['book_session_manually'])
@@ -103,14 +118,13 @@ def book_session_manually(message):
 @bot.message_handler(commands=['start'])
 @error_catcher
 def start(message: types.Message):
-    if not (client := get_client_by_username(message.from_user.username) or not
-    (client := get_client_by_chat_id(message.chat.id))):
+    client = get_client_by_username(message.from_user.username) or get_client_by_chat_id(message.chat.id)
+    if not client:
         client = Client.create(
             chat_id=message.chat.id,
             username=message.from_user.username,
             full_name=message.from_user.full_name
         )
-
         print(f"New client was added to db: {client.username} with chat_if {client.chat_id}")
         logging.info(f"New client was added to db: {client.username} with chat_if {client.chat_id}")
     else:
@@ -218,10 +232,12 @@ def handle_coach_session_callback_query(call):
 
             markup = types.InlineKeyboardMarkup(row_width=2)
 
-            starting_datetime = datetime.datetime.combine(datetime.datetime.today(), session.starting_time)
+            starting_datetime = datetime.datetime.combine(session.date, session.starting_time)
+            starting_datetime = starting_datetime.replace(tzinfo=confg.KYIV_TZ)
+
             if (session.status == 2 and
-                    session.date <= datetime.datetime.today().date() and
-                    starting_datetime + datetime.timedelta(hours=2) <= datetime.datetime.now(confg.KYIV_TZ)):
+                    
+                    starting_datetime + datetime.timedelta(hours=1) <= datetime.datetime.now(confg.KYIV_TZ)):
                 yes_button = types.InlineKeyboardButton("Так",
                                                         callback_data=f'coach_session;session_happened_yes;{session.id}')
                 no_button = types.InlineKeyboardButton("Ні",
@@ -465,7 +481,7 @@ def handle_book_menu_callback_query(call):
             session.client = client
             session.type = USER_STATES[chat_id].session_type.type_name
             session.status = 2
-            session.booked_at = datetime.datetime.now()
+            session.booked_at = datetime.datetime.now(confg.KYIV_TZ)
             session.save()
 
             text = "Ви успішно забронювали сесію!"
