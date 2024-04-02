@@ -5,9 +5,11 @@ import telebot
 from telebot import types
 import sessions_types
 import confg
-from database import get_unique_dates, get_sessions_on_date, get_session_by_id, Client, get_client_by_chat_id, \
+from database import get_unique_dates, get_sessions_on_date, get_session_by_id, get_client_by_chat_id, \
     get_coach_by_username, get_coach_sessions_dates, get_coachs_sessions_on_date, get_coach_by_chat_id, \
     get_all_booked_session_with_coach, get_session_with_client, get_client_by_username
+
+from models import Client
 from texts import Text
 
 bot = telebot.TeleBot(confg.BOT_TOKEN)
@@ -236,7 +238,7 @@ def handle_coach_session_callback_query(call):
             starting_datetime = starting_datetime.replace(tzinfo=confg.KYIV_TZ)
 
             if (session.status == 2 and
-                    
+
                     starting_datetime + datetime.timedelta(hours=1) <= datetime.datetime.now(confg.KYIV_TZ)):
                 yes_button = types.InlineKeyboardButton("Так",
                                                         callback_data=f'coach_session;session_happened_yes;{session.id}')

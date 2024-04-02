@@ -1,52 +1,6 @@
-from peewee import PostgresqlDatabase, Model, TextField, BooleanField, DateField, TimeField, ForeignKeyField, \
-    IntegerField, fn, DateTimeField
-
 import confg
-from confg import DATABASE_INFO
 from datetime import datetime, timedelta, timezone
-
-db = PostgresqlDatabase(DATABASE_INFO["name"],
-                        user=DATABASE_INFO["user"],
-                        password=DATABASE_INFO["password"],
-                        host=DATABASE_INFO["host"],
-                        port=DATABASE_INFO["port"])
-
-
-class Client(Model):
-    chat_id = TextField(unique=True, null=True)
-    username = TextField()
-    full_name = TextField(null=True)
-
-    class Meta:
-        database = db
-
-
-class Coach(Model):
-    full_name = TextField(null=True)
-    social_link = TextField(null=True)
-    username = TextField()
-    chat_id = TextField(null=True)
-
-    # email = TextField()
-    # username = TextField()
-    #
-
-    class Meta:
-        database = db
-
-
-class Session(Model):
-    coach = ForeignKeyField(Coach, backref="sessions")
-    date = DateField()
-    starting_time = TimeField()
-    client = ForeignKeyField(Client, backref="sessions", null=True)
-    coach_notes = TextField(null=True)
-    type = TextField(null=True)
-    status = IntegerField()
-    booked_at = DateTimeField()
-
-    class Meta:
-        database = db
+from models import Session, Client, Coach, fn
 
 
 def update_sessions_status(func):
@@ -164,18 +118,19 @@ def get_session_with_client(client, session_type):
 
 
 def get_session_by_week(week_number):
-    # .where(Session.type == type_name, Session.client == None,
-    # fn.DATE_PART('week', Session.date) == datetime.today().isocalendar()[1])
+    sessions = Session.select().where(fn.DATE_PART('week', Session.date) == week_number).order_by(Session.date,
+                                                                                                  Session.starting_time)
 
-    query = f"""
-        SELECT * 
-        FROM session
-        WHERE EXTRACT(WEEK FROM date) = {week_number}
-        ORDER BY date
-    """
-    sessions = Session.raw(query)
-    for session in sessions:
-        print(session.date)
+    return sessions
+    # query = f"""
+    #     SELECT *
+    #     FROM session
+    #     WHERE EXTRACT(WEEK FROM date) = {week_number}
+    #     ORDER BY date
+    # """
+    # sessions = Session.raw(query)
+    # for session in sessions:
+    #     print(session.date)
 
 # d#b.drop_tables([Session, Client, Coach])
 # db.create_tables([Session, Client, Coach])
