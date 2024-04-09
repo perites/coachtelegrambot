@@ -88,7 +88,30 @@ class Leadership(SessionType):
         super().__init__(start_date, end_date)
 
 
+class Relationship(SessionType):
+    type_name = "Relationship"
+    info_text = '''
+*Коучинг стосунків* ❤️
+Спрямований на допомогу клієнтам у поліпшенні якості їхніх взаємин з іншими. Це може включати розвиток навичок спілкування, вирішення конфліктів, підвищення емоційної інтелекту тощо. 
+
+Буде корисним, якщо ти хочеш:
+✅ Покращити спілкування і розуміння з партнером
+✅ Розуміти свої емоції і емоції оточуючих
+✅ Навчитися керувати конфліктами
+'''
+    _button_text = "Коучинг стосунків"
+    ukr_name = "Коучинг стосунків"
+
+    no_session_text = ("Нажаль зараз всі місця на коучинг стосунків закінчились, "
+                       "перейдіть за посиланням якщо ви хочете забронювати сесію саме цього типу\n"
+                       f"[посилання]({confg.BOOK_SESSION_LINK})")
+
+    def __init__(self, start_date, end_date):
+        super().__init__(start_date, end_date)
+
+
 ALL_SESSIONS_TYPES = {
     Career.type_name: Career,
-    Leadership.type_name: Leadership
+    Leadership.type_name: Leadership,
+    Relationship.type_name: Relationship,
 }

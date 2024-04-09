@@ -30,10 +30,12 @@ tx = Text()
 USER_STATES = dict()
 
 SESSIONS_TYPE_FOR_WEEK = [
-    sessions_types.Career("2024-03-25", "2024-04-10"),
-    sessions_types.Leadership("2024-03-25", "2024-04-10")
+    sessions_types.Career("2024-02-01", "2024-04-21"),
+    sessions_types.Relationship("2024-04-10", "2024-04-21"),
 ]
 
+
+# sessions_types.Leadership("2024-03-25", "2024-04-10"),
 
 def get_session_type_by_name(type_name):
     for session_type in SESSIONS_TYPE_FOR_WEEK:
@@ -120,6 +122,9 @@ def book_session_manually(message):
 @bot.message_handler(commands=['start'])
 @error_catcher
 def start(message: types.Message):
+    if USER_STATES.get(message.chat.id):
+        del USER_STATES[message.chat.id]
+
     client = get_client_by_username(message.from_user.username) or get_client_by_chat_id(message.chat.id)
     if not client:
         client = Client.create(
@@ -412,6 +417,12 @@ def handle_book_menu_callback_query(call):
     match level:
         case "no_sessions":
             session_type = get_session_type_by_name(data)
+            client = get_client_by_chat_id(chat_id)
+            print(
+                f'Client {client.username} (id:{client.id}) was TRYING to book session,but no sessions left'
+            )
+            logging.info(
+                f'Client {client.username} (id:{client.id}) was TRYING to book session,but no sessions left')
 
             bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=session_type.no_session_text)
 
