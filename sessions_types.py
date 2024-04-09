@@ -14,8 +14,12 @@ class SessionType:
         self.end_date = end_date
 
     def button_text(self):
-        free_session_amount, session_of_type_amount = get_session_of_type_amount(self.type_name, self.start_date,
-                                                                                 self.end_date)
+        # free_session_amount, session_of_type_amount = get_session_of_type_amount(self.type_name, self.start_date,
+        # self.end_date)
+
+        free_session_amount, session_of_type_amount = get_session_of_type_amount(self.type_name,
+                                                                                 "2024-04-11",
+                                                                                 "2024-04-21")
 
         available_sessions_of_type_amount = confg.MAX_SESSIONS_OF_ONE_TYPE - session_of_type_amount
         # print(available_sessions_of_type_amount, free_session_amount, session_of_type_amount)

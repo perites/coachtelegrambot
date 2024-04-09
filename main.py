@@ -419,10 +419,10 @@ def handle_book_menu_callback_query(call):
             session_type = get_session_type_by_name(data)
             client = get_client_by_chat_id(chat_id)
             print(
-                f'Client {client.username} (id:{client.id}) was TRYING to book session,but no sessions left'
+                f'Client {client.username} (id:{client.id}) was TRYING to book session (type:{session_type}), but no sessions left'
             )
             logging.info(
-                f'Client {client.username} (id:{client.id}) was TRYING to book session,but no sessions left')
+                f'Client {client.username} (id:{client.id}) was TRYING to book session (type:{session_type}), but no sessions left')
 
             bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=session_type.no_session_text)
 
