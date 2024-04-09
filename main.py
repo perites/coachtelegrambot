@@ -263,9 +263,9 @@ def handle_coach_session_callback_query(call):
                     types.InlineKeyboardButton(tx.date_representation(date.date),
                                                callback_data=f"coach_session;date;{date.date}")
                 )
-
+            markup.add(types.InlineKeyboardButton("Назад", callback_data=f'coach_session;back_to_types'))
             bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                                  text=f"Ваші одиночні сесії:",
+                                  text=f"Ваші індивідуальні сесії:",
                                   reply_markup=markup)
 
         case "group":
@@ -358,8 +358,6 @@ def handle_coach_session_callback_query(call):
                                   text=text,
                                   reply_markup=markup)
 
-            #
-
         case "session_canceled":
             session = get_session_by_id(data) if type == "single" else get_group_session_by_id(
                 data)
@@ -428,9 +426,9 @@ def see_my_booked_session(message: types.Message):
     client = get_client_by_chat_id(message.chat.id)
     text = 'Індивідуальні сесії: \n'
 
-    client_sessions = filter(lambda n: n.status == 2, client.sessions)
-    client_group_sessions = filter(lambda n: n.status in (2, 7, 8),
-                                   map(lambda n: n.group_session, client.group_sessions))
+    client_sessions = list(filter(lambda n: n.status == 2, client.sessions))
+    client_group_sessions = list(filter(lambda n: n.status in (2, 7, 8),
+                                        map(lambda n: n.group_session, client.group_sessions)))
 
     if not client_sessions or not client_group_sessions:
         bot.send_message(message.chat.id, "Ви ще не забронювали жодної сесії")
@@ -477,6 +475,14 @@ def handle_client_archive_callback_query(call):
 
 @bot.message_handler(func=lambda message: message.text == "Групові формати")
 @error_catcher
+def book_group_session_temp(message):
+    text = f"Станом на зараз записатись на групові сесії можливий тільки через сайт, будь ласка перейдіть за посиланням і запишіться там\n[посилання]({confg.GROUP_SESSION_LINK})"
+
+    bot.send_message(message.chat.id, text=text)
+
+
+@bot.message_handler(func=lambda message: message.text == "Групові формат")
+@error_catcher
 def book_group_session(message):
     text, markup = book_group_sessions_in()
     bot.send_message(message.chat.id, text=text, reply_markup=markup)
@@ -484,9 +490,13 @@ def book_group_session(message):
 
 def book_group_sessions_in():
     text = '''
-        мм - це ;
-        груповий коучинг - це 
-        '''
+Мастермайнд (ММ) — це потужний інструмент для навчання та розвитку. Мета — допомогти учасникам розвивати свої навички та знання в певній галузі через обмін досвідом та з підтримкою групи ❤️
+
+
+Груповий коучинг за стандартами ICF (Міжнародна федерація коучингу) є підходом в коучингу, який зосереджується на розвитку і підтримці групи людей для досягнення їхніх особистих та професійних цілей. Ви можете приходити на зустріч із будь-яким запитом, який прямо чи опосередковано відноситься до основної теми зустрічі та знайти відповіді на своє питання, побачити нові рішення, отримати ресурс для дій 🌿
+
+Фокус в груповому не на думки інших, а на роботу з власним мисленням через питання з фокусом на те як хоче учасник, і бонусом є думки інших по їх власним запитам, що розширює усвідомлення 💡
+'''
 
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
@@ -516,8 +526,9 @@ def handle_book_mm_callback_query(call):
             sessions = get_group_type_sessions(group_type)
             if not sessions:
                 text = f'''
-Нажаль зараз всі місця на групові події закінчились, перейдіть за посиланням ПРИДУМАТИ ДАЛІ"
-[посилання]({confg.BOOK_SESSION_LINK})
+На жаль, всі місця на групові події вже зайняті. Ви можете записатися на тему групової роботи за Донат від 200 грн на фонд проєкту ICFcoaching for WinE. Гроші фонду будуть направлені на розвиток проєкту!
+
+Записатися можна за посиланням: [посилання](https://forms.gle/SLyN6LpbZ1vfCA9M9)
                 '''
                 bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text)
                 return
@@ -530,8 +541,9 @@ def handle_book_mm_callback_query(call):
             markup.add(types.InlineKeyboardButton("Назад",
                                                   callback_data=f'book_group;back_to_groups_types'))
 
-            text = "Доступні сесії з"
-            text += "майстер майнду" if group_type == "mm" else "групових сеанісів"
+            text = "Доступні події з "
+            text += "Майстер майнду" if group_type == "mm" else "групового коучингу"
+
             bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text,
                                   reply_markup=markup)
 
@@ -545,9 +557,9 @@ def handle_book_mm_callback_query(call):
             client = get_client_by_chat_id(chat_id)
             if existing_session := get_group_session_with_client(client, group_type):
                 text = f"""
-Згідно з правилами проєкту, ви маєте право відвідати тільки одну подію в кожному з групових форматів під час кожної хвилі.
+Ви вже скористалися безкоштовною можливістю з групового коучингу або мастермайнду. У вас є  можливість записатися на тему групової роботи за Донат від 200 грн на фонд проєкту ICFcoaching for WinE. Гроші фонду будуть направлені на розвиток проєкту!
 
-Свої заброньовані сесії можна побачити в розділі *Мої заброньовані сесії*
+Записатися можна за посиланням: [посилання](https://forms.gle/SLyN6LpbZ1vfCA9M9)
 """
                 bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                       text=text)
@@ -560,8 +572,8 @@ def handle_book_mm_callback_query(call):
                                                   callback_data=f'book_group;week;;{group_type}'))
 
             text = "Ви хочете прийняти участь в цій сесії?\n"
-            text += f"\n*Груповий тип*:"
-            text += "майстер майнд\n" if group_type == "mm" else "груповий сеанc\n"
+            text += f"\n*Тип події*: "
+            text += "майстер майнд\n" if group_type == "mm" else "груповий коучинг\n"
 
             text += tx.group_session_representation_for_client(session)
             bot.edit_message_text(chat_id=chat_id, message_id=message_id,
@@ -587,7 +599,7 @@ def handle_book_mm_callback_query(call):
 
             session.save()
 
-            text = "Ви успішно забронювали сесію!"
+            text = "Ви успішно забронювали сесію!\n\n"
             text += tx.group_session_representation_for_client(session)
             bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                   text=text)

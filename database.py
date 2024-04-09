@@ -146,10 +146,18 @@ def get_coach_group_sessions(coach):
     return sessions
 
 
-def get_session_by_week(week_number):
+def get_session_by_week(week_number, groups=False):
+    if groups:
+        sessions = GroupSession.select().where(fn.DATE_PART('week', GroupSession.date) == week_number).order_by(
+            GroupSession.date,
+            GroupSession.starting_time)
+
+        clients = GroupSessionToClients.select().where(GroupSessionToClients.group_session << sessions)
+        clients = map(lambda n: n.client, clients)
+        return sessions, clients
+
     sessions = Session.select().where(fn.DATE_PART('week', Session.date) == week_number).order_by(Session.date,
                                                                                                   Session.starting_time)
-
     return sessions
 
 
