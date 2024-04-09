@@ -1,6 +1,14 @@
 import confg
-from datetime import datetime, timedelta, timezone
-from models import Session, Client, Coach, fn
+from datetime import datetime, timedelta
+from models import Session, Client, Coach, GroupSession, GroupSessionToClients, fn
+
+
+def get_filling_sessions():
+    sessions = GroupSession.select().where(GroupSession.status == 7,
+                                           GroupSession.date <= datetime.today().date() + timedelta(days=1)
+                                           )
+
+    return sessions
 
 
 def update_sessions_status(func):
@@ -8,10 +16,25 @@ def update_sessions_status(func):
         # sessions_updated = Session.update(status=6).where(Session.status == 1,
         #                                                   Session.date <= datetime.today().date(),
         #                                                   Session.starting_time <= datetime.today().time())
-        sessions = Session.select().where(Session.status == 1,
-                                          Session.date <= datetime.today().date(),
-                                          Session.starting_time <= datetime.now(confg.KYIV_TZ).time())
-        for session in sessions:
+        expired_sessions = Session.select().where(Session.status == 1,
+                                                  Session.date <= datetime.today().date(),
+                                                  Session.starting_time <= datetime.now(confg.KYIV_TZ).time())
+        for session in expired_sessions:
+            session.status = 6
+            session.save()
+
+        result = func(*args, **kwargs)
+        return result
+
+    return wrapper
+
+
+def update_group_sessions_status(func):
+    def wrapper(*args, **kwargs):
+        expired_sessions = GroupSession.select().where(GroupSession.status == 1,
+                                                       GroupSession.date <= datetime.today().date() - timedelta(days=1))
+
+        for session in expired_sessions:
             session.status = 6
             session.save()
 
@@ -117,11 +140,47 @@ def get_session_with_client(client, session_type):
     return session_with_client
 
 
+def get_coach_group_sessions(coach):
+    sessions = GroupSession.select().where(GroupSession.coach == coach).order_by(GroupSession.date)
+
+    return sessions
+
+
 def get_session_by_week(week_number):
     sessions = Session.select().where(fn.DATE_PART('week', Session.date) == week_number).order_by(Session.date,
                                                                                                   Session.starting_time)
 
     return sessions
+
+
+@update_group_sessions_status
+def get_group_type_sessions(type):
+    sessions = GroupSession.select().where(GroupSession.status << [1, 7, 8],
+                                           GroupSession.type == type).order_by(GroupSession.date,
+                                                                               GroupSession.starting_time)
+
+    return sessions
+
+
+@update_group_sessions_status
+def get_group_session_by_id(session_id):
+    session = GroupSession.get_by_id(session_id)
+
+    return session
+
+
+@update_group_sessions_status
+def get_group_session_with_client(client, type):
+    sessions = GroupSessionToClients.select().join(GroupSession).where(GroupSessionToClients.client == client,
+                                                                       GroupSessionToClients.group_session.type == type,
+                                                                       GroupSessionToClients.group_session.status << [2,
+                                                                                                                      3,
+                                                                                                                      5,
+                                                                                                                      7,
+                                                                                                                      8])
+
+    return sessions
+
     # query = f"""
     #     SELECT *
     #     FROM session
@@ -135,7 +194,6 @@ def get_session_by_week(week_number):
 # d#b.drop_tables([Session, Client, Coach])
 # db.create_tables([Session, Client, Coach])
 # get_session_by_week(13)
-# db.create_tables([Session, Client, Coach])
 ## db.drop_tables([Session, Client, Coach])
 ##
 #

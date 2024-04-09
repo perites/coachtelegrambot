@@ -4,9 +4,10 @@ class State:
 
 
 class WaitingForCoachSessionNote(State):
-    def __init__(self, session_id):
+    def __init__(self, session_id, session_type):
         super().__init__("WaitingForSessionNoteState")
         self.session_id = session_id
+        self.session_type = session_type
 
 
 class WantToBookSessionType(State):

@@ -56,10 +56,41 @@ class Text:
 
         return text
 
-    def notify_coach_session_booked(self, session):
-        text = f"Користувач @{unmarkdown(session.client.username)} ({unmarkdown(session.client.full_name)}) забронював сесію з вами.\n"
-        text += self.session_representation_for_coach(session)
+    def group_session_representation_for_coach(self, session):
+        text = self.group_session_representation_for_client(session)
+        clients = list(map(lambda n: unmarkdown(n.client.username), list(session.clients)))
+        amount_clients = f"{len(clients)}/{session.max_participants}"
+        text += f"amount client: {amount_clients}\n"
 
+        text += f"clients: {', '.join(clients)}"
+
+        return text
+
+    def notify_coach_session_booked(self, session, client=None, group=False):
+        client_username = client.username if client else session.client.username
+        client_full_name = client.full_name if client else session.client.full_name
+        text = f"Користувач @{unmarkdown(client_username)} ({unmarkdown(client_full_name)}) забронював сесію з вами.\n"
+        if group:
+            text += self.group_session_representation_for_coach(session)
+        elif not group:
+            text += self.session_representation_for_coach(session)
+
+        return text
+
+    def group_session_representation_for_client(self, session):
+
+        text = f'''
+tema : {unmarkdown(session.theme)}
+coach : {unmarkdown(session.coach.full_name)}
+coach link : [link]({session.coach.social_link})
+date: {session.date}
+time: {session.starting_time}
+link to join: {session.link_to_meeting}
+'''
+        return text
+
+    def button_group_sessions_representaton(self, session):
+        text = f"{session.theme} {session.date} at {session.starting_time}"
         return text
 
 

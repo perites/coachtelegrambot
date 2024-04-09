@@ -40,3 +40,27 @@ class Session(Model):
 
     class Meta:
         database = db
+
+
+class GroupSession(Model):
+    type = TextField()
+    theme = TextField()
+    date = DateField()
+    starting_time = TimeField()
+    coach = ForeignKeyField(Coach, backref="sessions")
+    status = IntegerField()
+    link_to_meeting = TextField()
+    max_participants = IntegerField(default=6)
+    coach_notes = TextField(null=True)
+
+    class Meta:
+        database = db
+
+
+class GroupSessionToClients(Model):
+    group_session = ForeignKeyField(GroupSession, backref='clients')
+    client = ForeignKeyField(Client, backref="group_sessions")
+    booked_at = DateTimeField()
+
+    class Meta:
+        database = db
