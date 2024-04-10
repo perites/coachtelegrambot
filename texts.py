@@ -60,7 +60,6 @@ class Text:
         text = self.group_session_representation_for_client(session)
         clients = list(map(lambda n: "@" + unmarkdown(n.client.username), list(session.clients)))
         amount_clients = f"{len(clients)}/{session.max_participants}"
-        text += f"*Тип події*: {session.type}"
         text += f"*Кількість кліентів*: {amount_clients}\n"
 
         text += f"*Клієнти*: {', '.join(clients)}"
@@ -82,6 +81,7 @@ class Text:
 
         text = f'''
 *Тема групової сесії*: {unmarkdown(session.theme)}
+*Тип події*: {session.type}
 *Ім'я та прізвище коуча*: {unmarkdown(session.coach.full_name)}
 *Сторінка коуча для ознайомлення*: [посилання]({session.coach.social_link})
 *Дата проведення*: {session.date:{self.date_format}}
