@@ -1,5 +1,5 @@
 from peewee import PostgresqlDatabase, Model, TextField, DateField, TimeField, ForeignKeyField, \
-    IntegerField, fn, DateTimeField
+    IntegerField, DateTimeField
 import confg
 
 db = PostgresqlDatabase(confg.DATABASE_INFO["name"],
@@ -11,7 +11,7 @@ db = PostgresqlDatabase(confg.DATABASE_INFO["name"],
 
 class Client(Model):
     chat_id = TextField(unique=True, null=True)
-    username = TextField()
+    username = TextField(unique=True)
     full_name = TextField(null=True)
 
     class Meta:

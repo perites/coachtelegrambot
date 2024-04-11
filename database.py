@@ -1,21 +1,13 @@
-import confg
 from datetime import datetime, timedelta
-from models import Session, Client, Coach, GroupSession, GroupSessionToClients, fn
 
+from peewee import fn
 
-def get_filling_sessions():
-    sessions = GroupSession.select().where(GroupSession.status == 7,
-                                           GroupSession.date <= datetime.today().date() + timedelta(days=1)
-                                           )
-
-    return sessions
+import confg
+from models import Session, Client, Coach, GroupSession, GroupSessionToClients
 
 
 def update_sessions_status(func):
     def wrapper(*args, **kwargs):
-        # sessions_updated = Session.update(status=6).where(Session.status == 1,
-        #                                                   Session.date <= datetime.today().date(),
-        #                                                   Session.starting_time <= datetime.today().time())
         expired_sessions = Session.select().where(Session.status == 1,
                                                   Session.date <= datetime.today().date(),
                                                   Session.starting_time <= datetime.now(confg.KYIV_TZ).time())
@@ -44,22 +36,11 @@ def update_group_sessions_status(func):
     return wrapper
 
 
-@update_sessions_status
-def get_unique_dates():
-    unique_dates = Session.select(Session.date).distinct().where(Session.status == 1,
-                                                                 Session.date >= datetime.today()).order_by(
-        Session.date)
+# CLIENT
 
-    return unique_dates
-
-
-@update_sessions_status
-def get_coach_sessions_dates(coach):
-    unique_dates = Session.select(Session.date).distinct().where(Session.coach == coach,
-                                                                 Session.date >= datetime.strptime("2024-04-01",
-                                                                                                   '%Y-%m-%d')).order_by(
-        Session.date)
-    return unique_dates
+def get_client_by_chat_id(chat_id):
+    client = Client.get_or_none(Client.chat_id == chat_id)
+    return client
 
 
 def get_client_by_username(client_username):
@@ -68,11 +49,33 @@ def get_client_by_username(client_username):
     return client
 
 
-# @update_sessions_status
-# def get_all_free_sessions():
-#     sessions = Session.select(Session.id).where(Session.status == 1)
-#
-#     return len(sessions)
+# COACH
+def get_coach_by_username(username):
+    coach = Coach.get_or_none(Coach.username == username)
+    return coach
+
+
+def get_coach_by_chat_id(chat_id):
+    coach = Coach.get_or_none(Coach.chat_id == chat_id)
+
+    return coach
+
+
+# SOLO SESSIONS
+def get_session_by_id(session_id):
+    session = Session.get_or_none(Session.id == session_id)
+    return session
+
+
+# SOLO SESSIONS | client
+
+@update_sessions_status
+def get_unique_dates():
+    unique_dates = Session.select(Session.date).distinct().where(Session.status == 1,
+                                                                 Session.date >= datetime.today()).order_by(
+        Session.date)
+
+    return unique_dates
 
 
 @update_sessions_status
@@ -94,6 +97,25 @@ def get_session_of_type_amount(type_name, start_date, end_date):
 
 
 @update_sessions_status
+def get_session_with_client(client, session_type):
+    session_with_client = Session.get_or_none(Session.client == client,
+                                              Session.status << [2, 3, 5],
+                                              Session.type == session_type.type_name)
+
+    return session_with_client
+
+
+# SOLO SESSIONS | coach
+@update_sessions_status
+def get_coach_sessions_dates(coach):
+    unique_dates = Session.select(Session.date).distinct().where(Session.coach == coach,
+                                                                 Session.date >= datetime.strptime("2024-04-01",
+                                                                                                   '%Y-%m-%d')).order_by(
+        Session.date)
+    return unique_dates
+
+
+@update_sessions_status
 def get_coachs_sessions_on_date(date_str, coach_chat_id):
     sessions = Session.select().where(Session.date == datetime.strptime(date_str, '%Y-%m-%d'),
                                       Session.coach == Coach.get(Coach.chat_id == coach_chat_id)).order_by(
@@ -108,64 +130,20 @@ def get_all_booked_session_with_coach(coach):
     return sessions
 
 
-def get_session_by_id(id):
-    session = Session.get_or_none(Session.id == id)
-    return session
+# GROUP SESSIONS
+def get_filling_sessions():
+    sessions = GroupSession.select().where(GroupSession.status == 7,
+                                           GroupSession.date <= datetime.today().date() + timedelta(days=1)
+                                           )
 
-
-def get_coach_by_username(username):
-    coach = Coach.get_or_none(Coach.username == username)
-    return coach
-
-
-def get_client_by_chat_id(chat_id):
-    client = Client.get_or_none(Client.chat_id == chat_id)
-    return client
-
-
-def get_coach_by_chat_id(chat_id):
-    coach = Coach.get_or_none(Coach.chat_id == chat_id)
-
-    return coach
-
-
-@update_sessions_status
-def get_session_with_client(client, session_type):
-    session_with_client = Session.get_or_none(Session.client == client,
-                                              Session.status << [2, 3, 5],
-                                              Session.type == session_type.type_name,
-                                              Session.date >= datetime.strptime(session_type.start_date, '%Y-%m-%d'),
-                                              Session.date <= datetime.strptime(session_type.end_date, '%Y-%m-%d')
-                                              )
-    return session_with_client
-
-
-def get_coach_group_sessions(coach):
-    sessions = GroupSession.select().where(GroupSession.coach == coach).order_by(GroupSession.date)
-
-    return sessions
-
-
-def get_session_by_week(week_number, groups=False):
-    if groups:
-        sessions = GroupSession.select().where(fn.DATE_PART('week', GroupSession.date) == week_number).order_by(
-            GroupSession.date,
-            GroupSession.starting_time)
-
-        clients = GroupSessionToClients.select().where(GroupSessionToClients.group_session << sessions)
-        clients = map(lambda n: n.client, clients)
-        return sessions, clients
-
-    sessions = Session.select().where(fn.DATE_PART('week', Session.date) == week_number).order_by(Session.date,
-                                                                                                  Session.starting_time)
     return sessions
 
 
 @update_group_sessions_status
-def get_group_type_sessions(type):
+def get_group_type_sessions(group_type):
     sessions = GroupSession.select().where(GroupSession.status << [1, 7, 8],
-                                           GroupSession.type == type).order_by(GroupSession.date,
-                                                                               GroupSession.starting_time)
+                                           GroupSession.type == group_type).order_by(GroupSession.date,
+                                                                                     GroupSession.starting_time)
 
     return sessions
 
@@ -177,64 +155,22 @@ def get_group_session_by_id(session_id):
     return session
 
 
+# GROUP SESSIONS | client
+
 @update_group_sessions_status
-def get_group_session_with_client(client, type):
+def get_group_session_with_client(client, group_type):
     sessions = GroupSessionToClients.select().join(GroupSession).where(GroupSessionToClients.client == client,
-                                                                       GroupSessionToClients.group_session.type == type,
-                                                                       GroupSessionToClients.group_session.status << [2,
-                                                                                                                      3,
-                                                                                                                      5,
-                                                                                                                      7,
-                                                                                                                      8])
+                                                                       GroupSessionToClients.group_session.type == group_type,
+                                                                       GroupSessionToClients.group_session.status <<
+                                                                       [2, 3, 5, 7, 8]
+                                                                       )
 
     return sessions
 
-    # query = f"""
-    #     SELECT *
-    #     FROM session
-    #     WHERE EXTRACT(WEEK FROM date) = {week_number}
-    #     ORDER BY date
-    # """
-    # sessions = Session.raw(query)
-    # for session in sessions:
-    #     print(session.date)
 
-# d#b.drop_tables([Session, Client, Coach])
-# db.create_tables([Session, Client, Coach])
-# get_session_by_week(13)
-## db.drop_tables([Session, Client, Coach])
-##
-#
-# def startover():
-#     db.drop_tables([Session, Client, Coach])
-#     db.create_tables([Session, Client, Coach])
-#     ksenia = Coach.create(
-#         name="Ksenia Petrunina",
-#         social_link="inst.com/ksenia",
-#     )
-#     natasha = Coach.create(
-#         name="Natasha Blablablabovna",
-#         social_link="inst.com/natasha",
-#     )
-#     Session.create(
-#         coach=ksenia,
-#         date=datetime.strptime("14/03/24", '%d/%m/%y'),
-#         starting_time=datetime.strptime("10:00:00", "%H:%M:%S")
-#     )
-#     Session.create(
-#         coach=ksenia,
-#         date=datetime.strptime("14/03/24", '%d/%m/%y'),
-#         starting_time=datetime.strptime("12:30:00", "%H:%M:%S")
-#     )
-#     Session.create(
-#         coach=natasha,
-#         date=datetime.strptime("15/03/24", '%d/%m/%y'),
-#         starting_time=datetime.strptime("12:00:00", "%H:%M:%S")
-#     )
-#     Session.create(
-#         coach=natasha,
-#         date=datetime.strptime("15/03/24", '%d/%m/%y'),
-#         starting_time=datetime.strptime("14:30:00", "%H:%M:%S")
-#     )
+# GROUP SESSIONS | coach
 
-#
+def get_coach_group_sessions(coach):
+    sessions = GroupSession.select().where(GroupSession.coach == coach).order_by(GroupSession.date)
+
+    return sessions

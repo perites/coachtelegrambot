@@ -14,31 +14,15 @@ class SessionType:
         self.end_date = end_date
 
     def button_text(self):
-        # free_session_amount, session_of_type_amount = get_session_of_type_amount(self.type_name, self.start_date,
-        # self.end_date)
-
-        free_session_amount, session_of_type_amount = get_session_of_type_amount(self.type_name,
-                                                                                 "2024-04-11",
-                                                                                 "2024-04-21")
+        free_session_amount, session_of_type_amount = get_session_of_type_amount(self.type_name, self.start_date,
+                                                                                 self.end_date)
 
         available_sessions_of_type_amount = confg.MAX_SESSIONS_OF_ONE_TYPE - session_of_type_amount
-        # print(available_sessions_of_type_amount, free_session_amount, session_of_type_amount)
-
         available_sessions_amount = min(free_session_amount, available_sessions_of_type_amount)
-
         if available_sessions_amount <= 0:
-            # return False
             return f"{self._button_text}", False
 
-        # return False
         return f"{self._button_text} | Доступно {available_sessions_amount} з {confg.MAX_SESSIONS_OF_ONE_TYPE}", True
-
-        # print(free_session_amount, session_of_type_amount)
-
-        # if session_of_type_amount >= confg.MAX_SESSIONS_OF_ONE_TYPE:
-        #     return False
-
-        # return f"{self._button_text} | Вільно {confg.MAX_SESSIONS_OF_ONE_TYPE - len(sessions_of_type)} з {confg.MAX_SESSIONS_OF_ONE_TYPE}"
 
 
 class Career(SessionType):

@@ -48,7 +48,7 @@ class Text:
         text = (f"\n*Коуч*: {unmarkdown(session.coach.full_name)}\n"
                 f"*Сторінка коуча*: [посилання]({session.coach.social_link})\n"
                 f"*Дата*: {session.date:{self.date_format}}\n"
-                f"*Час*: {session.starting_time:{self.time_format}}\n"
+                f"*Час за Києвом*: {session.starting_time:{self.time_format}}\n"
                 )
         if type_needed:
             text += f"*Тип*: {session_type}\n"
