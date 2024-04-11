@@ -7,7 +7,8 @@ class Text:
     date_format = "%d.%m"
     time_format = "%H:%M"
 
-    def ukr_weekday(self, weekday_number):
+    @staticmethod
+    def ukr_weekday(weekday_number):
         ukr_week = [
             "Понеділок",
             "Вівторок",
@@ -18,6 +19,15 @@ class Text:
             "Неділя"
         ]
         return ukr_week[weekday_number]
+
+    @staticmethod
+    def ukr_group_type(group_type):
+        ukr_group_type = {
+            "mm": "Майстермайнд",
+            "group": "Групова сесія"
+        }
+
+        return ukr_group_type[group_type]
 
     def date_representation(self, date, reverse=False):
         if reverse:
@@ -81,7 +91,7 @@ class Text:
 
         text = f'''
 *Тема групової сесії*: {unmarkdown(session.theme)}
-*Тип події*: {session.type}
+*Тип події*: {self.ukr_group_type(session.type)}
 *Ім'я та прізвище коуча*: {unmarkdown(session.coach.full_name)}
 *Сторінка коуча для ознайомлення*: [посилання]({session.coach.social_link})
 *Дата проведення*: {session.date:{self.date_format}}
