@@ -38,9 +38,11 @@ class ExceptionHandler:
         self.chat_id = self.get_chat_id_from_args()
 
     def handle_exception(self):
-        print(self.exception_obj)
+        if isinstance(self.exception_obj, CustomException) and self.exception_obj.ignore:
+            logging.info(f"Exeption : {self.exception_obj} | WAS  IGNORED")
+            return
 
-        additional_text = f"Client:{self.chat_id} | client_notified: {bool(self.chat_id)} | bot stop: {self.bot_stopped}"
+        additional_text = f"User: {self.chat_id} | client_notified: {bool(self.chat_id)} | bot stop: {self.bot_stopped}"
 
         error_logger.exception(self.exception_obj)
         error_logger.error(additional_text)
@@ -78,18 +80,22 @@ class ExceptionHandler:
 Упс, відбулась помилка ( 
 
 Будь ласка спробуйте вести команду /start в бота і спробувати зробити що ви хотіли ще раз, не натискайте на старі повідомлення в чаті
-Якщо проблема залишилась і ви бачите це повідомлення знов, будь ласка напишіть в підтримку @kryskaks 
-Текст помилки:\n{self.exception_obj}
+Якщо проблема залишилась і ви бачите це повідомлення знов, будь ласка напишіть в підтримку {confg.SUPPORT_USERNAME}
+Текст помилки:
+{self.exception_obj}
+Функція:
+{self.func}
             '''
 
         shared_variables.bot.send_message(self.chat_id, text=text, parse_mode=None)
 
 
 class CustomException(Exception):
-    def __init__(self, message, chat_id=None):
+    def __init__(self, message, chat_id=None, ignore=False):
         super().__init__()
         self.message = message
         self.chat_id = chat_id
+        self.ignore = ignore
 
     def __str__(self):
         return self.message

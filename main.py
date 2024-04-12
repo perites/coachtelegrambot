@@ -30,74 +30,40 @@ CallbackHandler.callers = {
 }
 
 
-# @shared_variables.bot.message_handler(commands=['book_session_manually'])
-# @error_catcher
-# def book_session_manually(message):
-#     args = message.text.split("---")[1:]
-#     if not args:
-#         shared_variables.bot.send_message(message.chat.id, "Wrong format, no arguments were given")
-#         return
-#
-#     session_id = args[0].split(':')[1] if "session_id" in args[0] else None
-#     try:
-#         session_id = int(session_id)
-#     except Exception as e:
-#         shared_variables.bot.send_message(message.chat.id, "Wrong session_id, wasnt found")
-#         return
-#
-#     if not session_id:
-#         shared_variables.bot.send_message(message.chat.id, "Wrong format, session_id wasnt found")
-#         return
-#
-#     session = get_session_by_id(session_id)
-#     if not session:
-#         shared_variables.bot.send_message(message.chat.id, "Wrong session_id, wasnt found")
-#         return
-#     # print(session.coach.full_name, session.date)
-#
-#     full_name = args[1].split(':')[1] if "full_name" in args[1] else None
-#     username = args[2].split(':')[1] if "username" in args[2] else None
-#     if not full_name or not username:
-#         shared_variables.bot.send_message(message.chat.id, "Wrong format, full_name or username wasnt found")
-#         return
-#     client = Client.create(full_name=full_name, username=username)
-#     old_client = session.client
-#     session.client = client
-#     session.save()
-#
-#     logging.info(
-#         f"{client.username} booked session {session.date} at {session.starting_time} with {session.coach.full_name}")
-#
-#     shared_variables.bot.send_message(message.chat.id,
-#                      f"success!\nSession id: {session.id}\nDate: {session.date}\nTime: {session.starting_time}\nOld client: {old_client}\nNew client id: {session.client.id}\nNew client username: @{session.client.username}\nNew client full_name: {session.client.full_name}")
-#
-#     if not session.coach.chat_id:
-#         logging.info(f"not chat id for {session.coach}. Message was not send to coach")
-#         return
-#     text = shared_variables.tx.notify_coach_session_booked(session)
-#     shared_variables.bot.send_message(chat_id=session.coach.chat_id,
-#                      text=text)
-
-
 @shared_variables.bot.message_handler(commands=['start'])
 @error_catcher
 def start(message: types.Message):
     if shared_variables.USER_STATES.get(message.chat.id):
         del shared_variables.USER_STATES[message.chat.id]
 
-    client = get_client_by_chat_id(message.chat.id) or get_client_by_username(message.from_user.username)
-    if not client:
+        print(f"States were cleaned for {message.chat.id}")
+        logging.info(f"States were cleaned for {message.chat.id}")
 
-        if message.from_user.username:
-            username = message.from_user.username
-        elif not message.from_user.username:
-            username = f"None-{message.chat.id}"
-        else:
-            raise Exception
+    client = get_client_by_chat_id(message.chat.id) or get_client_by_username(message.from_user.username)
+
+    if not client:
+        if not message.from_user.username:
+            text = '''
+У вас немає або скритий нік телеграму і в разі бронювання коуч не зможе зв'ятись з вами
+
+Будь ласка натисніть кнопку " Поділитися номером телефону " або відправте в повідомленні зручний для вас спосіб зв'язку
+(будь який спосіб який вам зручний: номер телефону, електронна пошта, посилання на інстаграм і тд.) 
+'''
+            markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+            button = types.KeyboardButton("Поділитися номером телефону", request_contact=True)
+            markup.add(button)
+
+            shared_variables.USER_STATES[message.chat.id] = user_states.WaitingForClientContact()
+
+            shared_variables.bot.send_message(message.chat.id,
+                                              text=text,
+                                              reply_markup=markup)
+
+            return
 
         client = Client.create(
             chat_id=message.chat.id,
-            username=username,
+            username=message.from_user.username,
             full_name=message.from_user.full_name
         )
 
@@ -106,15 +72,16 @@ def start(message: types.Message):
     else:
         client.chat_id = message.chat.id
         client.save()
-        print(f"Client {client.username} was updatated with chat_id: {client.chat_id}")
-        logging.info(f"Client {client.username} was updatated with chat_id: {client.chat_id}")
+        print(f"Client {client.username} ({client.contact}) was updatated with chat_id: {client.chat_id}")
+        logging.info(f"Client {client.username} ({client.contact}) was updatated with chat_id: {client.chat_id}")
 
     if coach := get_coach_by_username(message.from_user.username):
         markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        markup.add(types.KeyboardButton("Подивитись мої сесії"))
+        markup.add(types.KeyboardButton("Подивитись мої активні сесії"))
+        markup.add(types.KeyboardButton("Архів сесій"))
 
-        print(f"{message.from_user.username} was authorized as coach")
-        logging.info(f"{message.from_user.username} was authorized as coach")
+        print(f"{message.from_user.username} ({client.contact}) was authorized as coach")
+        logging.info(f"{message.from_user.username} ({client.contact}) was authorized as coach")
 
         coach.chat_id = message.chat.id
         coach.save()
@@ -151,6 +118,19 @@ def start(message: types.Message):
     shared_variables.bot.send_message(message.chat.id, text, reply_markup=markup)
 
 
+@shared_variables.bot.message_handler(content_types=['contact'])
+@error_catcher
+def process_client_contact(message: types.Message):
+    client_handler.process_client_contact(message, is_contact=True)
+
+
+@shared_variables.bot.message_handler(func=lambda message: isinstance(shared_variables.USER_STATES.get(message.chat.id),
+                                                                      user_states.WaitingForClientContact))
+@error_catcher
+def process_client_contact(message: types.Message):
+    client_handler.process_client_contact(message, is_contact=False)
+
+
 @shared_variables.bot.callback_query_handler(func=lambda call: call)
 @error_catcher
 def handle_callback_query(call):
@@ -159,15 +139,20 @@ def handle_callback_query(call):
 
 
 # Coach part
-@shared_variables.bot.message_handler(func=lambda message: message.text == "Подивитись мої сесії")
+@shared_variables.bot.message_handler(func=lambda message: message.text == "Подивитись мої активні сесії")
 @error_catcher
 def see_my_session(message):
     coach_handler.see_my_session(message)
 
 
-@shared_variables.bot.message_handler(
-    func=lambda message: isinstance(shared_variables.USER_STATES.get(message.chat.id),
-                                    user_states.WaitingForCoachSessionNote))
+@shared_variables.bot.message_handler(func=lambda message: message.text == "Архів сесій")
+@error_catcher
+def coach_archive(message):
+    coach_handler.coach_archive(message)
+
+
+@shared_variables.bot.message_handler(func=lambda message: isinstance(shared_variables.USER_STATES.get(message.chat.id),
+                                                                      user_states.WaitingForCoachSessionNote))
 @error_catcher
 def process_session_notes(message: types.Message):
     coach_handler.process_session_notes(message)
@@ -178,14 +163,6 @@ def process_session_notes(message: types.Message):
 @error_catcher
 def see_my_booked_session(message: types.Message):
     client_handler.see_my_booked_session(message)
-
-
-@shared_variables.bot.message_handler(func=lambda message: message.text == "Групові формат")
-@error_catcher
-def book_group_session_temp(message):
-    text = f"Станом на зараз записатись на групові сесії можливий тільки через сайт, будь ласка перейдіть за посиланням і запишіться там\n[посилання]({confg.GROUP_SESSION_LINK})"
-
-    shared_variables.bot.send_message(message.chat.id, text=text)
 
 
 @shared_variables.bot.message_handler(func=lambda message: message.text == "Групові формати")

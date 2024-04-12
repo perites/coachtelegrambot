@@ -13,6 +13,7 @@ class Client(Model):
     chat_id = TextField(unique=True, null=True)
     username = TextField(unique=True)
     full_name = TextField(null=True)
+    contact = TextField(null=True)
 
     class Meta:
         database = db

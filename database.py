@@ -107,11 +107,16 @@ def get_session_with_client(client, session_type):
 
 # SOLO SESSIONS | coach
 @update_sessions_status
-def get_coach_sessions_dates(coach):
+def get_coach_sessions_dates(coach, is_archive):
+    if is_archive:
+        unique_dates = Session.select(Session.date).distinct().where(Session.coach == coach,
+                                                                     Session.status << [3, 4, 5, 6]).order_by(
+            Session.date)
+
+        return unique_dates
+
     unique_dates = Session.select(Session.date).distinct().where(Session.coach == coach,
-                                                                 Session.date >= datetime.strptime("2024-04-01",
-                                                                                                   '%Y-%m-%d')).order_by(
-        Session.date)
+                                                                 Session.status << [1, 2]).order_by(Session.date)
     return unique_dates
 
 
@@ -162,15 +167,20 @@ def get_group_session_with_client(client, group_type):
     sessions = GroupSessionToClients.select().join(GroupSession).where(GroupSessionToClients.client == client,
                                                                        GroupSessionToClients.group_session.type == group_type,
                                                                        GroupSessionToClients.group_session.status <<
-                                                                       [2, 3, 5, 7, 8]
-                                                                       )
+                                                                       [2, 3, 5, 7, 8])
 
     return sessions
 
 
 # GROUP SESSIONS | coach
 
-def get_coach_group_sessions(coach):
-    sessions = GroupSession.select().where(GroupSession.coach == coach).order_by(GroupSession.date)
+def get_coach_group_sessions(coach, is_archive):
+    if is_archive:
+        sessions = GroupSession.select().where(GroupSession.coach == coach,
+                                               GroupSession.status << [3, 4, 5, 6]).order_by(GroupSession.date)
+        return sessions
+
+    sessions = GroupSession.select().where(GroupSession.coach == coach,
+                                           GroupSession.status << [1, 2, 7, 8]).order_by(GroupSession.date)
 
     return sessions

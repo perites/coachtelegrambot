@@ -3,6 +3,11 @@ class State:
         self.state_name = name
 
 
+class WaitingForClientContact(State):
+    def __init__(self):
+        super().__init__("WaitingForClientContact")
+
+
 class WaitingForCoachSessionNote(State):
     def __init__(self, session_id, session_type):
         super().__init__("WaitingForSessionNoteState")

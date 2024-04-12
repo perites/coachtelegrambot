@@ -29,6 +29,13 @@ class Text:
 
         return ukr_group_type[group_type]
 
+    @staticmethod
+    def unmarkdown(text):
+        text = text or ""
+        new_unmarked_text = re.sub(r'([*_`\[\]\(\)~>#\-=|{}!])', r'\\\1', text)
+
+        return new_unmarked_text
+
     def date_representation(self, date, reverse=False):
         if reverse:
             text = f"{self.ukr_weekday(date.weekday())} {date:{Text.date_format}}"
@@ -38,6 +45,13 @@ class Text:
 
         return text
 
+    def _client_representation(self, client):
+        client_info = f"{self.unmarkdown(client.full_name)}"
+        client_info += f" (@{self.unmarkdown(client.username)})"
+        client_info += f" контакт: {self.unmarkdown(client.contact)}" if client.contact else ""
+
+        return client_info
+
     def session_representation_for_client(self, session, type_needed=False):
 
         if session.type:
@@ -45,7 +59,7 @@ class Text:
         else:
             session_type = "Поки немає"
 
-        text = (f"\n*Коуч*: {unmarkdown(session.coach.full_name)}\n"
+        text = (f"\n*Коуч*: {self.unmarkdown(session.coach.full_name)}\n"
                 f"*Сторінка коуча*: [посилання]({session.coach.social_link})\n"
                 f"*Дата*: {session.date:{self.date_format}}\n"
                 f"*Час за Києвом*: {session.starting_time:{self.time_format}}\n"
@@ -57,56 +71,54 @@ class Text:
     def session_representation_for_coach(self, session):
         text = self.session_representation_for_client(session, type_needed=True)
 
-        client_info = f"{unmarkdown(session.client.full_name)} (@{unmarkdown(session.client.username)})" if session.client else "Поки немає"
+        client_info = self._client_representation(session.client) if session.client else "Поки немає"
 
         text += (
             f"*Статус*: {confg.SESSIONS_STATUSES[session.status][1]}\n"
             f"*Клієнт*: {client_info}\n")
-        text += f"*Нотатка коуча*: {unmarkdown(session.coach_notes)}\n\n"
-
-        return text
-
-    def group_session_representation_for_coach(self, session):
-        text = self.group_session_representation_for_client(session)
-        clients = list(map(lambda n: "@" + unmarkdown(n.client.username), list(session.clients)))
-        amount_clients = f"{len(clients)}/{session.max_participants}"
-        text += f"*Кількість кліентів*: {amount_clients}\n"
-
-        text += f"*Клієнти*: {', '.join(clients)}"
-
-        return text
-
-    def notify_coach_session_booked(self, session, client=None, group=False):
-        client_username = client.username if client else session.client.username
-        client_full_name = client.full_name if client else session.client.full_name
-        text = f"Користувач @{unmarkdown(client_username)} ({unmarkdown(client_full_name)}) забронював сесію з вами.\n"
-        if group:
-            text += self.group_session_representation_for_coach(session)
-        elif not group:
-            text += self.session_representation_for_coach(session)
+        text += f"*Нотатка коуча*: {self.unmarkdown(session.coach_notes)}\n\n"
 
         return text
 
     def group_session_representation_for_client(self, session):
 
         text = f'''
-*Тема групової сесії*: {unmarkdown(session.theme)}
+*Тема групової сесії*: {self.unmarkdown(session.theme)}
 *Тип події*: {self.ukr_group_type(session.type)}
-*Ім'я та прізвище коуча*: {unmarkdown(session.coach.full_name)}
+*Ім'я та прізвище коуча*: {self.unmarkdown(session.coach.full_name)}
 *Сторінка коуча для ознайомлення*: [посилання]({session.coach.social_link})
 *Дата проведення*: {session.date:{self.date_format}}
 *Час за Києвом*: {session.starting_time:{self.time_format}}
-*Посилання на онлайн-кімнату, де проходитиме захід*: {unmarkdown(session.link_to_meeting)}
+*Посилання на онлайн-кімнату, де проходитиме захід*: {self.unmarkdown(session.link_to_meeting)}
 '''
         return text
 
-    def button_group_sessions_representaton(self, session):
+    def group_session_representation_for_coach(self, session):
+        text = self.group_session_representation_for_client(session)
+        clients = list(map(lambda n: self._client_representation(n.client), session.clients))
+
+        amount_clients = f"{len(clients)}/{session.max_participants}"
+        text += f"*Кількість кліентів*: {amount_clients}\n"
+
+        text += f"*Клієнти*: {'  |  '.join(clients)}"
+
+        return text
+
+    @staticmethod
+    def button_group_sessions_representation(session):
         text = f"{session.theme}"
         return text
 
+    def notify_coach_session_booked(self, session, client=None, group=False):
+        text = (f"Ваша сесія була заброньована!\n"
+                f"Кліент: ")
 
-def unmarkdown(text):
-    text = text or ""
-    new_unmarked_text = re.sub(r'([*_`\[\]\(\)~>#+\-=|{}!])', r'\\\1', text)
+        client_info = self._client_representation(client if client else session.client)
+        text += client_info + "\n"
 
-    return new_unmarked_text
+        if group:
+            text += self.group_session_representation_for_coach(session)
+        else:
+            text += self.session_representation_for_coach(session)
+
+        return text

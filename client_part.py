@@ -4,6 +4,7 @@ import datetime
 from telebot import types
 
 import confg
+import models
 import shared_variables
 
 from database import GroupSessionToClients, get_client_by_chat_id, get_group_type_sessions, get_group_session_by_id, \
@@ -102,6 +103,35 @@ class ClientHandler:
 
         return text, markup
 
+    def process_client_contact(self, message, is_contact):
+        if is_contact:
+            contact = message.contact.phone_number
+        elif not is_contact:
+            contact = message.text
+        else:
+            raise CustomException("Wrong value of is_contact, wrong call")
+
+        client = models.Client.create(
+            chat_id=message.chat.id,
+            username=f"None-{message.chat.id}",
+            full_name=message.from_user.full_name
+        )
+
+        client.contact = contact
+        client.save()
+
+        print(
+            f"New client WITHOUT USERNAME was added to db: {client.username} ({client.contact}) with chat_id {client.chat_id}")
+        logging.info(
+            f"New client WITHOUT USERNAME was added to db: {client.username} ({client.contact}) with chat_id {client.chat_id}")
+
+        text = f'''
+Дякуємо, ваш спосіб з'вязку було збережено! 
+Спосіб з'вязку : {shared_variables.tx.unmarkdown(client.contact)}
+Будь ласка відправте команду /start ще раз щоб продовжити роботу з ботом
+        '''
+        self.bot.send_message(message.chat.id, text=text)
+
 
 class ClientCallbackHandler(ClientHandler):
     def __init__(self):
@@ -170,7 +200,7 @@ class ClientCallbackHandler(ClientHandler):
         markup = types.InlineKeyboardMarkup(row_width=1)
         for session in sessions:
             markup.add(
-                types.InlineKeyboardButton(shared_variables.tx.button_group_sessions_representaton(session),
+                types.InlineKeyboardButton(shared_variables.tx.button_group_sessions_representation(session),
                                            callback_data=f"client;group_session;{session.id};{group_type}")
             )
         markup.add(types.InlineKeyboardButton("Назад",
