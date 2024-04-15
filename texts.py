@@ -89,7 +89,7 @@ class Text:
 *Сторінка коуча для ознайомлення*: [посилання]({session.coach.social_link})
 *Дата проведення*: {session.date:{self.date_format}}
 *Час за Києвом*: {session.starting_time:{self.time_format}}
-*Посилання на онлайн-кімнату, де проходитиме захід*: {self.unmarkdown(session.link_to_meeting)}
+*Посилання на онлайн-кімнату, де проходитиме захід*: [посилання]({session.link_to_meeting})
 '''
         return text
 

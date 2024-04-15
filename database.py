@@ -4,6 +4,7 @@ from peewee import fn
 
 import confg
 from models import Session, Client, Coach, GroupSession, GroupSessionToClients
+import logging
 
 
 def update_sessions_status(func):
@@ -12,6 +13,9 @@ def update_sessions_status(func):
                                                   Session.date <= datetime.today().date(),
                                                   Session.starting_time <= datetime.now(confg.KYIV_TZ).time())
         for session in expired_sessions:
+            logging.warning(
+                f"Session with id: {session.id} was canceled due to expiring")
+
             session.status = 6
             session.save()
 
@@ -21,19 +25,20 @@ def update_sessions_status(func):
     return wrapper
 
 
-def update_group_sessions_status(func):
-    def wrapper(*args, **kwargs):
-        expired_sessions = GroupSession.select().where(GroupSession.status == 1,
-                                                       GroupSession.date <= datetime.today().date() - timedelta(days=1))
-
-        for session in expired_sessions:
-            session.status = 6
-            session.save()
-
-        result = func(*args, **kwargs)
-        return result
-
-    return wrapper
+#
+# def update_group_sessions_status(func):
+#     def wrapper(*args, **kwargs):
+#         expired_sessions = GroupSession.select().where(GroupSession.status == 1,
+#                                                        GroupSession.date - timedelta(days=1) <= datetime.today().date())
+#
+#         for session in expired_sessions:
+#             session.status = 6
+#             session.save()
+#
+#         result = func(*args, **kwargs)
+#         return result
+#
+#     return wrapper
 
 
 # CLIENT
@@ -62,6 +67,7 @@ def get_coach_by_chat_id(chat_id):
 
 
 # SOLO SESSIONS
+@update_sessions_status
 def get_session_by_id(session_id):
     session = Session.get_or_none(Session.id == session_id)
     return session
@@ -136,24 +142,27 @@ def get_all_booked_session_with_coach(coach):
 
 
 # GROUP SESSIONS
+# @update_group_sessions_status
 def get_filling_sessions():
-    sessions = GroupSession.select().where(GroupSession.status == 7,
-                                           GroupSession.date <= datetime.today().date() + timedelta(days=1)
-                                           )
+    sessions = GroupSession.select().where(GroupSession.status << [1, 7],
+                                           GroupSession.date <= datetime.today().date() + timedelta(days=1))
 
     return sessions
 
 
-@update_group_sessions_status
+# @update_group_sessions_status
 def get_group_type_sessions(group_type):
     sessions = GroupSession.select().where(GroupSession.status << [1, 7, 8],
-                                           GroupSession.type == group_type).order_by(GroupSession.date,
-                                                                                     GroupSession.starting_time)
+                                           GroupSession.type == group_type,
+                                           GroupSession.date >= datetime.today().date(),
+                                           GroupSession.starting_time >= datetime.now(confg.KYIV_TZ).time()).order_by(
+        GroupSession.date,
+        GroupSession.starting_time)
 
     return sessions
 
 
-@update_group_sessions_status
+# @update_group_sessions_status
 def get_group_session_by_id(session_id):
     session = GroupSession.get_by_id(session_id)
 
@@ -162,7 +171,7 @@ def get_group_session_by_id(session_id):
 
 # GROUP SESSIONS | client
 
-@update_group_sessions_status
+# @update_group_sessions_status
 def get_group_session_with_client(client, group_type):
     sessions = GroupSessionToClients.select().join(GroupSession).where(GroupSessionToClients.client == client,
                                                                        GroupSessionToClients.group_session.type == group_type,
@@ -173,7 +182,7 @@ def get_group_session_with_client(client, group_type):
 
 
 # GROUP SESSIONS | coach
-
+# @update_group_sessions_status
 def get_coach_group_sessions(coach, is_archive):
     if is_archive:
         sessions = GroupSession.select().where(GroupSession.coach == coach,

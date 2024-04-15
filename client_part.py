@@ -181,7 +181,6 @@ class ClientCallbackHandler(ClientHandler):
             text += f"{shared_variables.tx.group_session_representation_for_client(group_session)}"
 
         self.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text)
-        self.bot.answer_callback_query(call.id)
 
     def group_week_callback_handler(self, call):
         chat_id = call.chat_id
@@ -270,8 +269,13 @@ class ClientCallbackHandler(ClientHandler):
         if amount_session_clients >= confg.MIN_AMOUNT_FOR_GROUP_SESSION:
             session.status = 8
 
+            logging.info(f"Session with id {session.id} has more than {confg.MIN_AMOUNT_FOR_GROUP_SESSION} clients")
+
         if amount_session_clients == session.max_participants:
             session.status = 2
+
+            logging.info(
+                f"Session with id {session.id} has {session.max_participants} clients, now unavailable for booking")
 
         session.save()
 

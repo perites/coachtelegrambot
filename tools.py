@@ -42,7 +42,7 @@ class ExceptionHandler:
             logging.info(f"Exeption : {self.exception_obj} | WAS  IGNORED")
             return
 
-        additional_text = f"User: {self.chat_id} | client_notified: {bool(self.chat_id)} | bot stop: {self.bot_stopped}"
+        additional_text = f"User: {self.chat_id} | user_notified: {bool(self.chat_id)} | bot stop: {self.bot_stopped}"
 
         error_logger.exception(self.exception_obj)
         error_logger.error(additional_text)

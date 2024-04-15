@@ -1,6 +1,7 @@
 import time
 import schedule
 
+import logging
 import shared_variables
 import confg
 from database import get_filling_sessions
@@ -23,6 +24,8 @@ def check_group_session_status():
             client = client.client
             notify_session_canceled(client, session)
 
+        logging.warning(
+            f"Session with id: {session.id} was canceled due to not enough clients or due to expiring, session coach {session.coach} and clients {list(session.client)} were notified")
         session.status = 4
         session.save()
 
