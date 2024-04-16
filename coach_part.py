@@ -142,7 +142,7 @@ class CoachCallbackHandler(CoachHandler):
     def back_to_types_callback_handler(self, call):
         chat_id = call.chat_id
         message_id = call.message_id
-        is_archive = call.additional_info or ""
+        is_archive = call.additional_info
 
         text, markup = self._see_my_session_parts(is_archive)
         self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
