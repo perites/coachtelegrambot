@@ -12,7 +12,7 @@ def run_scheduler():
     schedule.every().day.at("20:00", confg.KYIV_TZ).do(check_group_session_status)
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(5)
 
 
 def check_group_session_status():

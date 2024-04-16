@@ -1,13 +1,14 @@
 import datetime
 import logging
 import threading
+import time
 
 from telebot import types
 
 import confg
 import shared_variables
 
-from tools import error_catcher, CallbackHandler, ExceptionHandler
+from tools import error_catcher, CallbackHandler, error_logger
 from database import get_client_by_chat_id, get_coach_by_username, get_all_booked_session_with_coach, \
     get_client_by_username
 
@@ -177,16 +178,50 @@ def client_see_sessions_types(message):
     client_handler.client_see_sessions_types(message)
 
 
-if __name__ == '__main__':
+def run_bot_pulling():
+    global BOT_RUNNING
     try:
         print(f"now:{datetime.datetime.now()} kyiv tz: {datetime.datetime.now(confg.KYIV_TZ)} --- starting bot")
+        BOT_RUNNING = True
+        shared_variables.bot.polling(non_stop=True)
 
-        start_bot = threading.Thread(target=shared_variables.bot.polling)
-        start_bot.start()
+    except Exception as bot_error:
+        print(f"BOT STOPPED WORKING | INITIALIZING RESTARTING | ERROR : {bot_error} ")
+        error_logger.fatal(f"BOT STOPPED WORKING | INITIALIZING BOT RESTARTING | ERROR : {bot_error} ")
+        BOT_RUNNING = False
 
-        run_scheduler_thread = threading.Thread(target=my_scheduler.run_scheduler)
-        run_scheduler_thread.start()
 
-    except Exception as e:
-        eh = ExceptionHandler(exception_obj=e, bot_stopped=True)
-        eh.handle_exception()
+def run_run_scheduler():
+    global SCHEDULER_RUNNING
+    try:
+        print(f"now:{datetime.datetime.now()} kyiv tz: {datetime.datetime.now(confg.KYIV_TZ)} --- starting scheduler")
+        SCHEDULER_RUNNING = True
+        my_scheduler.run_scheduler()
+
+    except Exception as scheduler_error:
+        print(f"SCHEDULER STOPPED WORKING | INITIALIZING SCHEDULER RESTARTING | ERROR : {scheduler_error} ")
+        error_logger.fatal(
+            f"SCHEDULER STOPPED WORKING | INITIALIZING SCHEDULER RESTARTING | ERROR : {scheduler_error} ")
+        SCHEDULER_RUNNING = False
+
+
+def start_program():
+    global BOT_RUNNING, SCHEDULER_RUNNING
+    while True:
+        if not BOT_RUNNING:
+            start_bot_thread = threading.Thread(target=run_bot_pulling)
+            start_bot_thread.start()
+        if not SCHEDULER_RUNNING:
+            run_scheduler_thread = threading.Thread(target=run_run_scheduler)
+            run_scheduler_thread.start()
+
+        time.sleep(1)
+
+
+if __name__ == '__main__':
+    BOT_RUNNING = False
+    SCHEDULER_RUNNING = False
+    try:
+        start_program()
+    except Exception as program_error:
+        logging.fatal(f"PROGRAM STOPPED WORKING| CANT RESTART | FATAL ERROR : {program_error}")

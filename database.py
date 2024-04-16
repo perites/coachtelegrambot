@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
 
-from peewee import fn
-
 import confg
 from models import Session, Client, Coach, GroupSession, GroupSessionToClients
 import logging

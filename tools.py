@@ -23,14 +23,14 @@ def error_catcher(func):
             return result
 
         except Exception as e:
-            eh = ExceptionHandler(exception_obj=e, bot_stopped=False, arg=args[0], func=func)
+            eh = BotExceptionHandler(exception_obj=e, bot_stopped=False, arg=args[0], func=func)
             eh.handle_exception()
 
     return wrapper
 
 
-class ExceptionHandler:
-    def __init__(self, exception_obj, bot_stopped, arg=None, func=None):
+class BotExceptionHandler:
+    def __init__(self, exception_obj, bot_stopped=False, arg=None, func=None):
         self.exception_obj = exception_obj
         self.arg = arg
         self.bot_stopped = bot_stopped
