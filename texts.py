@@ -52,7 +52,7 @@ class Text:
 
         return client_info
 
-    def session_representation_for_client(self, session, type_needed=False):
+    def session_representation_for_client(self, session, type_needed=False, link_needed=False):
 
         if session.type:
             session_type = sessions_types.ALL_SESSIONS_TYPES[session.type].ukr_name
@@ -66,10 +66,13 @@ class Text:
                 )
         if type_needed:
             text += f"*Тип*: {session_type}\n"
+
+        if link_needed:
+            text += f"*Посилання на зустріч*: [посилання]({session.coach.meeting_link})"
         return text
 
     def session_representation_for_coach(self, session):
-        text = self.session_representation_for_client(session, type_needed=True)
+        text = self.session_representation_for_client(session, type_needed=True, link_needed=True)
 
         client_info = self._client_representation(session.client) if session.client else "Поки немає"
 

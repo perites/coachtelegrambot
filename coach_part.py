@@ -101,7 +101,10 @@ class CoachCallbackHandler(CoachHandler):
             "session_happened_yes": self.session_happened_yes_callback_handler,
             "session_happened_no": self.session_happened_no_callback_handler,
             "session_canceled": self.session_canceled_callback_handler,
-            "session_postponed": self.session_postponed_callback_handler
+            "session_postponed": self.session_postponed_callback_handler,
+
+            "need_to_cancel_session": self.need_to_cancel_session_callback_handler,
+            "need_to_cancel_session_yes": self.need_to_cancel_session_yes_callback_handler
 
         }
 
@@ -119,15 +122,16 @@ class CoachCallbackHandler(CoachHandler):
                 for date in get_coach_sessions_dates(coach, is_archive):
                     markup.add(
                         types.InlineKeyboardButton(text=shared_variables.tx.date_representation(date.date),
-                                                   callback_data=f"coach;date;{date.date}"))
+                                                   callback_data=f"coach;date;{date.date};{is_archive}"))
 
                 message_text = "Ваші індивідуальні сесії:"
 
             case "group":
                 for session in get_coach_group_sessions(coach, is_archive):
+                    callback_data = f"coach;session;{session.id};group" if not is_archive else f"coach;session;{session.id};group_archive"
                     markup.add(
                         types.InlineKeyboardButton(shared_variables.tx.button_group_sessions_representation(session),
-                                                   callback_data=f"coach;session;{session.id};group"))
+                                                   callback_data=callback_data))
 
                 message_text = "Ваші групові сесії:"
 
@@ -153,6 +157,7 @@ class CoachCallbackHandler(CoachHandler):
         chat_id = call.chat_id
         message_id = call.message_id
         data = call.data
+        is_archive = call.additional_info or ""
 
         markup = types.InlineKeyboardMarkup(row_width=1)
         sessions = get_coachs_sessions_on_date(data, coach_chat_id=chat_id)
@@ -162,9 +167,10 @@ class CoachCallbackHandler(CoachHandler):
             markup.add(
                 types.InlineKeyboardButton(
                     f"{session.starting_time:{shared_variables.tx.time_format}} {confg.SESSIONS_STATUSES[session.status][1]}",
-                    callback_data=f"coach;session;{session.id};single")
+                    callback_data=(
+                        f"coach;session;{session.id};single" if not is_archive else f"coach;session;{session.id};single_archive"))
             )
-        back_button = types.InlineKeyboardButton("Назад", callback_data=f'coach;show;single')
+        back_button = types.InlineKeyboardButton("Назад", callback_data=f'coach;show;single;{is_archive}')
         markup.add(back_button)
         self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                    text=f"Всі ваші сесії за {sessions[0].date:{shared_variables.tx.date_format}}",
@@ -182,11 +188,24 @@ class CoachCallbackHandler(CoachHandler):
                 text = shared_variables.tx.session_representation_for_coach(session)
 
                 callback_data = f"coach;date;{session.date}"
+
+            case "single_archive":
+                session = get_session_by_id(data)
+                text = shared_variables.tx.session_representation_for_coach(session)
+
+                callback_data = f"coach;date;{session.date};archive"
+
             case "group":
                 session = get_group_session_by_id(data)
                 text = shared_variables.tx.group_session_representation_for_coach(session)
 
                 callback_data = "coach;show;group"
+
+            case "group_archive":
+                session = get_group_session_by_id(data)
+                text = shared_variables.tx.group_session_representation_for_coach(session)
+
+                callback_data = "coach;show;group;archive"
 
             case _:
                 raise CustomException(f"Invalid group type: {group_type}", chat_id)
@@ -205,10 +224,56 @@ class CoachCallbackHandler(CoachHandler):
             markup.add(yes_button, no_button)
             text += "\n\nЧи сесія відбулась ?"
 
+        elif (session.status == 1 and
+              session.date - datetime.timedelta(days=1) <= datetime.datetime.now(confg.KYIV_TZ).date()):
+
+            cancel_session_button = types.InlineKeyboardButton("Відмінити сесію",
+                                                               callback_data=f'coach;need_to_cancel_session;{session.id};{group_type}')
+            markup.add(cancel_session_button)
+
         markup.add(types.InlineKeyboardButton("Назад", callback_data=callback_data))
+        print(callback_data)
         self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                    text=text,
                                    reply_markup=markup)
+
+    def need_to_cancel_session_callback_handler(self, call):
+        chat_id = call.chat_id
+        message_id = call.message_id
+        session_id = call.data
+        group_type = call.additional_info
+        session, message_text = self._get_session(session_id, group_type)
+
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        yes_button = types.InlineKeyboardButton("Так",
+                                                callback_data=f'coach;need_to_cancel_session_yes;{session.id};{group_type}')
+        back_button = types.InlineKeyboardButton("Ні, повернутись назад",
+                                                 callback_data=f'coach;session;{session_id};{group_type}')
+        markup.add(yes_button, back_button)
+
+        message_text += "\n\nВи точно хочете відмінити цю сесію ?"
+
+        self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                                   text=message_text, reply_markup=markup)
+
+    def need_to_cancel_session_yes_callback_handler(self, call):
+        chat_id = call.chat_id
+        message_id = call.message_id
+        session_id = call.data
+        group_type = call.additional_info
+        session, message_session_text = self._get_session(session_id, group_type)
+
+        session.status = 4
+        session.save()
+
+        logging.info(f"Session with id {session.id} ({group_type}) was canceled by coach")
+
+        message_text = "Сесія\n"
+        message_text += message_session_text
+        message_text += "\n\n Була успішно відмінена"
+
+        self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                                   text=message_text)
 
     def session_happened_yes_callback_handler(self, call):
         chat_id = call.chat_id
@@ -220,6 +285,7 @@ class CoachCallbackHandler(CoachHandler):
 
         session.status = 3
         session.save()
+        logging.info(f"Session with id {session.id} ({group_type}) was marked as happend by coach")
         self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                    text=f"Чудово ! Дякуємо за відповідь")
 
@@ -252,6 +318,7 @@ class CoachCallbackHandler(CoachHandler):
         session, message_text = self._get_session(data, group_type)
         session.status = 4
         session.save()
+        logging.info(f"Session with id {session.id} ({group_type}) was marked as canceled by coach")
 
         message_text += "\n\nБудь ласка опишіть в повідомленні чому сесія не відбулась"
 
@@ -269,6 +336,7 @@ class CoachCallbackHandler(CoachHandler):
         session, message_text = self._get_session(data, group_type)
         session.status = 5
         session.save()
+        logging.info(f"Session with id {session.id} ({group_type}) was marked as postponed by coach")
 
         message_text += "\n\nБудь ласка опишіть в повідомленні чому сесія була пересена"
 

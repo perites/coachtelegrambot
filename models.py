@@ -24,6 +24,7 @@ class Coach(Model):
     social_link = TextField(null=True)
     username = TextField()
     chat_id = TextField(null=True)
+    meeting_link = TextField(null=True)
 
     class Meta:
         database = db

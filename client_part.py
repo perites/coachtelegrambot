@@ -41,7 +41,7 @@ class ClientHandler:
             return
 
         for session in client_sessions:
-            text += f'{shared_variables.tx.session_representation_for_client(session, type_needed=True)}'
+            text += f'{shared_variables.tx.session_representation_for_client(session, type_needed=True, link_needed=True)}'
 
         text += '\n\nСесії групового формату:\n'
         for group_session in client_group_sessions:
@@ -418,7 +418,7 @@ class ClientCallbackHandler(ClientHandler):
         session.save()
 
         text = "Ви успішно забронювали сесію!"
-        text += shared_variables.tx.session_representation_for_client(session)
+        text += shared_variables.tx.session_representation_for_client(session, link_needed=True)
         self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                    text=text, )
 

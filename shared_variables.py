@@ -3,7 +3,7 @@ import confg
 import texts
 import sessions_types
 
-bot = telebot.TeleBot(confg.BOT_TOKEN)
+bot = telebot.TeleBot(confg.BOT_TOKEN, threaded=False)
 
 USER_STATES = dict()
 
