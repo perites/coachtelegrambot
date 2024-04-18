@@ -224,4 +224,4 @@ if __name__ == '__main__':
     try:
         start_program()
     except Exception as program_error:
-        logging.fatal(f"PROGRAM STOPPED WORKING| CANT RESTART | FATAL ERROR : {program_error}")
+        error_logger.fatal(f"PROGRAM STOPPED WORKING| CANT RESTART | FATAL ERROR : {program_error}")

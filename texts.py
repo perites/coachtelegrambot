@@ -68,7 +68,8 @@ class Text:
             text += f"*Тип*: {session_type}\n"
 
         if link_needed:
-            text += f"*Посилання на зустріч*: [посилання]({session.coach.meeting_link})"
+            if session.coach.meeting_link:
+                text += f"*Посилання на зустріч*: [посилання]({session.coach.meeting_link})\n"
         return text
 
     def session_representation_for_coach(self, session):

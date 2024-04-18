@@ -153,10 +153,9 @@ def get_group_type_sessions(group_type):
     sessions = GroupSession.select().where(GroupSession.status << [1, 7, 8],
                                            GroupSession.type == group_type,
                                            GroupSession.date >= datetime.today().date(),
-                                           GroupSession.starting_time >= datetime.now(confg.KYIV_TZ).time()).order_by(
+                                           ).order_by(
         GroupSession.date,
         GroupSession.starting_time)
-
     return sessions
 
 
