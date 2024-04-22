@@ -152,7 +152,7 @@ def see_my_session(message):
 
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("Посилання на банку", url=confg.DONATE_URL),
+        types.InlineKeyboardButton("Посилання на банку 🍯🫙", url=confg.DONATE_URL),
     )
 
     shared_variables.bot.send_message(message.chat.id, text, reply_markup=markup)
