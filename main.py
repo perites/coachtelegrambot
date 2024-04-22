@@ -80,6 +80,7 @@ def start(message: types.Message):
         markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         markup.add(types.KeyboardButton("Подивитись мої активні сесії"))
         markup.add(types.KeyboardButton("Архів сесій"))
+        markup.add(types.KeyboardButton("Подякувати проєкту ❤️"))
 
         print(f"{message.from_user.username} ({client.contact}) was authorized as coach")
         logging.info(f"{message.from_user.username} ({client.contact}) was authorized as coach")
@@ -104,6 +105,7 @@ def start(message: types.Message):
     markup.add(types.KeyboardButton("Індивідуальні сесії"))
     markup.add(types.KeyboardButton("Групові формати"))
     markup.add(types.KeyboardButton("Мої заброньовані сесії"))
+    markup.add(types.KeyboardButton("Подякувати проєкту ❤️"))
 
     print(f"{message.from_user.username} was authorized as user")
     logging.info(f"{message.from_user.username} was authorized as user")
@@ -137,6 +139,23 @@ def process_client_contact(message: types.Message):
 def handle_callback_query(call):
     call_handler = CallbackHandler(call)
     call_handler.handle_caller()
+
+
+@shared_variables.bot.message_handler(func=lambda message: message.text == "Подякувати проєкту ❤️")
+@error_catcher
+def see_my_session(message):
+    text = ''' 
+Дякуємо вам! Такі прояви підтримки дуже важливі для нас, дають підтвердження, що ми робимо дійсно корисну справу і надихають рухатися далі і генерувати нові цікаві ідеї для вас в цьому просторі!
+
+Звертаємо вашу увагу, що за донат від 20 грн ви отримуєте актуальну для вас метафоричну карту!
+'''
+
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        types.InlineKeyboardButton("Посилання на банку", url=confg.DONATE_URL),
+    )
+
+    shared_variables.bot.send_message(message.chat.id, text, reply_markup=markup)
 
 
 # Coach part

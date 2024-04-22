@@ -45,7 +45,15 @@ class Text:
 
         return text
 
-    def _client_representation(self, client):
+    def client_representation(self, client, unmark=True):
+        if not unmark:
+            client_info = f"{client.full_name}"
+            client_info += f" (@{client.username})"
+            client_info += f" контакт: {client.contact}" if client.contact else ""
+            client_info += f" id:{client.id}"
+
+            return client_info
+
         client_info = f"{self.unmarkdown(client.full_name)}"
         client_info += f" (@{self.unmarkdown(client.username)})"
         client_info += f" контакт: {self.unmarkdown(client.contact)}" if client.contact else ""
@@ -75,7 +83,7 @@ class Text:
     def session_representation_for_coach(self, session):
         text = self.session_representation_for_client(session, type_needed=True, link_needed=True)
 
-        client_info = self._client_representation(session.client) if session.client else "Поки немає"
+        client_info = self.client_representation(session.client) if session.client else "Поки немає"
 
         text += (
             f"*Статус*: {confg.SESSIONS_STATUSES[session.status][1]}\n"
@@ -99,7 +107,7 @@ class Text:
 
     def group_session_representation_for_coach(self, session):
         text = self.group_session_representation_for_client(session)
-        clients = list(map(lambda n: self._client_representation(n.client), session.clients))
+        clients = list(map(lambda n: self.client_representation(n.client), session.clients))
 
         amount_clients = f"{len(clients)}/{session.max_participants}"
         text += f"*Кількість кліентів*: {amount_clients}\n"
@@ -117,7 +125,7 @@ class Text:
         text = (f"Ваша сесія була заброньована!\n"
                 f"Кліент: ")
 
-        client_info = self._client_representation(client if client else session.client)
+        client_info = self.client_representation(client if client else session.client)
         text += client_info + "\n"
 
         if group:

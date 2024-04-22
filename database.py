@@ -171,9 +171,13 @@ def get_group_session_by_id(session_id):
 # @update_group_sessions_status
 def get_group_session_with_client(client, group_type):
     sessions = GroupSessionToClients.select().join(GroupSession).where(GroupSessionToClients.client == client,
-                                                                       GroupSessionToClients.group_session.type == group_type,
+                                                                       GroupSessionToClients.group_session.date >= datetime.strptime(
+                                                                           "2024-04-22", '%Y-%m-%d'),
+                                                                       GroupSessionToClients.group_session.date <= datetime.strptime(
+                                                                           "2024-04-30", '%Y-%m-%d'),
                                                                        GroupSessionToClients.group_session.status <<
-                                                                       [2, 3, 5, 7, 8])
+                                                                       [2, 3, 5, 7, 8],
+                                                                       )
 
     return sessions
 
