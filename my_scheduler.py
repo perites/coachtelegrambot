@@ -27,7 +27,8 @@ def check_group_session_status():
             notify_session_canceled(client, session)
 
         logging.warning(
-            f"Session with id: {session.id} was canceled due to not enough clients or due to expiring, session coach {session.coach} and clients {list(session.client)} were notified")
+            f"Session with id: {session.id} was canceled due to not enough clients or due to expiring, session coach {session.coach} "
+            f"and clients {list(map(lambda n: n.client.id, list(session.clients)))} were notified")
         session.status = 4
         session.save()
 
@@ -40,6 +41,8 @@ def notify_session_canceled(who_to_notify, session, coach=False):
         session) if not coach else shared_variables.tx.group_session_representation_for_coach(session)
     if who_to_notify.chat_id:
         shared_variables.bot.send_message(who_to_notify.chat_id, text=text)
+        logging.info(
+            f"{who_to_notify} | {who_to_notify.full_name} | {who_to_notify.username} | Was notified about session canceling")
     else:
         logging.warning(
             f"Couldnt notify {who_to_notify} | {who_to_notify.full_name} | {who_to_notify.username}, because chat id misssing")
