@@ -279,19 +279,20 @@ class ClientCallbackHandler(ClientHandler):
 
         session.save()
 
+        print(
+            f"{client.username} booked {group_type} session_id {session.id} at {gs_to_client.booked_at} with {session.coach.full_name}")
+        logging.info(
+            f"{client.username} booked {group_type} session_id {session.id} at {gs_to_client.booked_at} with {session.coach.full_name}")
+
         text = "Ви успішно забронювали сесію!\n\n"
         text += shared_variables.tx.group_session_representation_for_client(session)
         self.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                                    text=text)
 
         text = shared_variables.tx.notify_coach_session_booked(session, client, group=True)
-        self.bot.send_message(chat_id=session.coach.chat_id,
-                              text=text)
-
-        print(
-            f"{client.username} booked {group_type} session_id {session.id} at {gs_to_client.booked_at} with {session.coach.full_name}")
-        logging.info(
-            f"{client.username} booked {group_type} session_id {session.id} at {gs_to_client.booked_at} with {session.coach.full_name}")
+        if session.coach.chat_id:
+            self.bot.send_message(chat_id=session.coach.chat_id,
+                                  text=text)
 
     def no_sessions_callback_handler(self, call):
         chat_id = call.chat_id

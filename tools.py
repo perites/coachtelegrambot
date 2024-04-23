@@ -22,7 +22,7 @@ def error_catcher(func):
             result = func(*args, **kwargs)
             return result
         except apihelper.ApiTelegramException as some_api_error:
-            if some_api_error == "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message":
+            if some_api_error.__str__() == "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message":
                 notify_users_and_admins = False
             else:
                 notify_users_and_admins = True
@@ -93,9 +93,9 @@ class BotExceptionHandler:
 {self.exception_obj}
 Функція:
 {self.func}
-            '''
-
-        shared_variables.bot.send_message(self.chat_id, text=text, parse_mode=None)
+        '''
+        if self.chat_id:
+            shared_variables.bot.send_message(self.chat_id, text=text, parse_mode=None)
 
 
 class CustomException(Exception):

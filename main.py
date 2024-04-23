@@ -80,7 +80,6 @@ def start(message: types.Message):
         markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         markup.add(types.KeyboardButton("Подивитись мої активні сесії"))
         markup.add(types.KeyboardButton("Архів сесій"))
-        markup.add(types.KeyboardButton("Подякувати проєкту ❤️"))
 
         print(f"{message.from_user.username} ({client.contact}) was authorized as coach")
         logging.info(f"{message.from_user.username} ({client.contact}) was authorized as coach")
